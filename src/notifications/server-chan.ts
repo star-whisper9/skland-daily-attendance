@@ -1,27 +1,44 @@
 import { ofetch } from 'ofetch'
-import { type NotificationService, NotificationServiceError } from './interface'
+import { BaseNotificationService, type NotificationService, NotificationServiceError } from './interface'
 
 export interface ServerChanOptions {
   title?: string
 }
 
-export class ServerChanService implements NotificationService {
+interface ServerChanFormattedMessage {
+  message: string
+  as: `heading-${1 | 2 | 3}` | 'text' | 'quote'
+}
+
+const asMapping: Record<`heading-${1 | 2 | 3}` | 'text' | 'quote', string> = {
+  'heading-1': '#',
+  'heading-2': '##',
+  'heading-3': '###',
+  'text': '',
+  'quote': '>',
+}
+
+export class ServerChanService extends BaseNotificationService implements NotificationService {
   #sendKey: string
   #title: string
-  #messages: string[] = []
+  #messages: ServerChanFormattedMessage[] = []
   constructor(sendKey: string, options?: ServerChanOptions) {
+    super()
     if (!sendKey)
       throw new NotificationServiceError('未提供 server 酱 sendKey，请通过 https://sct.ftqq.com/ 获取')
     this.#sendKey = sendKey
-    this.#title = options.title ?? '【森空岛每日签到】'
+    this.#title = options?.title ?? '【森空岛每日签到】'
   }
 
-  pushMessage(...messages: string[]) {
-    this.#messages.push(...messages)
+  addMessage(message: string, as: `heading-${1 | 2 | 3}` | 'text' | 'quote') {
+    super.addMessage(message)
+    this.#messages.push({ message, as })
   }
 
   get formatMessage() {
-    return this.#messages.join('\n\n')
+    return this.#messages
+      .map(i => `${asMapping[i.as]} ${i.message}`)
+      .join('\n\n')
   }
 
   async send() {

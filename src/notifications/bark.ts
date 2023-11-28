@@ -1,5 +1,5 @@
 import { ofetch } from 'ofetch'
-import { type NotificationService, NotificationServiceError } from './interface'
+import { BaseNotificationService, type NotificationService, NotificationServiceError } from './interface'
 
 /**
  * 详见 https://bark.day.app/#/tutorial?id=%e8%af%b7%e6%b1%82%e5%8f%82%e6%95%b0
@@ -23,19 +23,21 @@ const defaultOptions: BarkOptions = {
   group: 'Skland',
 }
 
-export class BarkService implements NotificationService {
+export class BarkService extends BaseNotificationService implements NotificationService {
   #url: string
   #options: BarkOptions
   #messages: string[] = []
   constructor(url: string, options?: BarkOptions) {
+    super()
     if (!url)
       throw new NotificationServiceError('未提供 bark url，请查看 https://github.com/Finb/Bark 了解.')
     this.#url = url
     this.#options = Object.assign({}, defaultOptions, options)
   }
 
-  pushMessage(...messages: string[]) {
-    this.#messages.push(...messages)
+  addMessage(message: string) {
+    super.addMessage(message)
+    this.#messages.push(message)
   }
 
   get formatMessage() {
