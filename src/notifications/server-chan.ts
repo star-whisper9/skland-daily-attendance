@@ -1,37 +1,44 @@
-export async function serverChan(sendkey: string, title: string, content: string): Promise<number> {
-  if (typeof sendkey !== 'string') {
-    console.error('Wrong type for serverChan token.')
-    return -1
-    // throw new Error("Wrong type for serverChan token.");
+import { ofetch } from 'ofetch'
+import { type NotificationService, NotificationServiceError } from './interface'
+
+export interface ServerChanOptions {
+  title?: string
+}
+
+export class ServerChanService implements NotificationService {
+  #sendKey: string
+  #title: string
+  #messages: string[] = []
+  constructor(sendKey: string, options?: ServerChanOptions) {
+    if (!sendKey)
+      throw new NotificationServiceError('未提供 server 酱 sendKey，请通过 https://sct.ftqq.com/ 获取')
+    this.#sendKey = sendKey
+    this.#title = options.title ?? '【森空岛每日签到】'
   }
-  const payload = {
-    title,
-    desp: content,
+
+  pushMessage(...messages: string[]) {
+    this.#messages.push(...messages)
   }
-  try {
-    // const resp = await axios.post(`https://sctapi.ftqq.com/${sendkey}.send`, payload);
-    const resp = await fetch(
-      `https://sctapi.ftqq.com/${sendkey}.send`,
+
+  get formatMessage() {
+    return this.#messages.join('\n\n')
+  }
+
+  async send() {
+    const content = this.formatMessage
+    const payload = {
+      title: this.#title,
+      desp: content,
+    }
+    const data = await ofetch<{ code: number }>(
+      `https://sctapi.ftqq.com/${this.#sendKey}.send`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
       },
     )
-    const data = await resp.json()
-    if (data.code === 0) {
-      console.log('[ServerChan] Send message to ServerChan successfully.')
-      return 0
-    }
-    else {
-      console.log(`[ServerChan][Send Message Response] ${data}`)
-      return -1
-    }
-  }
-  catch (error) {
-    console.error(`[ServerChan] Error: ${error}`)
-    return -1
+
+    return data.code === 0
   }
 }
